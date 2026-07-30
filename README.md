@@ -157,7 +157,7 @@ Each misconception includes a **Socratic probe** — a follow-up question that d
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/lucid.git
+git clone https://github.com/ibnshafi/lucid.git
 cd lucid
 
 # Install dependencies
