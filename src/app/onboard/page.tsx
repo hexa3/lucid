@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Brain, ArrowRight, Sparkles, ChevronLeft } from "lucide-react";
+import { Brain, ArrowRight, Sparkles, ChevronLeft, Check } from "lucide-react";
 import { INTEREST_TAGS, generateUserId } from "@/lib/store";
 import type { InterestTag } from "@/types";
 
@@ -15,53 +15,36 @@ export default function OnboardPage() {
 
   function toggleTag(tag: InterestTag) {
     setSelectedTags((prev) => {
-      if (prev.includes(tag)) {
-        return prev.filter((t) => t !== tag);
-      }
-      if (prev.length >= 3) return prev; // Max 3 tags
+      if (prev.includes(tag)) return prev.filter((t) => t !== tag);
+      if (prev.length >= 3) return prev;
       return [...prev, tag];
     });
   }
 
   async function handleSubmit() {
     if (!name.trim() || selectedTags.length === 0) return;
-
     setIsSubmitting(true);
     try {
       const userId = generateUserId();
-      const user = {
-        id: userId,
-        name: name.trim(),
-        interest_tags: selectedTags,
-        reading_level: "standard" as const,
-        accessibility: {
-          highContrast: false,
-          dyslexiaFont: false,
-          textToSpeech: false,
-        },
-      };
-
       const res = await fetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(user),
+        body: JSON.stringify({
+          id: userId,
+          name: name.trim(),
+          interest_tags: selectedTags,
+          reading_level: "standard",
+          accessibility: { highContrast: false, dyslexiaFont: false, textToSpeech: false },
+        }),
       });
 
-      // Store user ID in sessionStorage regardless of API success
-      // (fallback for demo resilience)
       sessionStorage.setItem("lucid_user_id", userId);
       sessionStorage.setItem("lucid_user_name", name.trim());
-      sessionStorage.setItem(
-        "lucid_interest_tags",
-        JSON.stringify(selectedTags)
-      );
+      sessionStorage.setItem("lucid_interest_tags", JSON.stringify(selectedTags));
 
-      if (!res.ok) {
-        console.warn("User API returned error, proceeding with local session.");
-      }
+      if (!res.ok) console.warn("User API returned error, proceeding with local session.");
       router.push("/learn");
-    } catch (error) {
-      console.error("Onboarding error:", error);
+    } catch {
       alert("Network error. Please check your connection and try again.");
     } finally {
       setIsSubmitting(false);
@@ -70,70 +53,74 @@ export default function OnboardPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-xl">
-        {/* Back button */}
-        <button
-          onClick={() => router.push("/")}
-          className="inline-flex items-center gap-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors mb-8"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back to home
-        </button>
-
-        {/* Logo */}
-        <div className="flex items-center gap-2 mb-8">
-          <Brain className="w-8 h-8 text-[var(--color-primary)]" />
-          <span className="font-bold text-2xl gradient-text">Lucid</span>
+      <div className="w-full max-w-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-10">
+          <button
+            onClick={() => router.push("/")}
+            className="btn btn-ghost px-4 py-2.5"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back
+          </button>
+          <div className="flex items-center gap-2.5">
+            <Brain className="w-6 h-6 text-[var(--color-primary)]" />
+            <span className="font-bold text-xl gradient-text">Lucid</span>
+          </div>
         </div>
 
         {step === "tags" && (
           <>
-            <div className="mb-8 animate-fadeIn">
-              <h1 className="text-3xl font-bold mb-3">
+            <div className="mb-10" style={{ animation: "fadeIn 0.5s forwards", opacity: 0 }}>
+              <div className="section-label">Personalize</div>
+              <h1 className="text-3xl md:text-4xl font-bold mb-4">
                 What do you love?
               </h1>
-              <p className="text-[var(--color-text-secondary)] leading-relaxed">
-                Pick 2–3 interests. We&apos;ll use them to explain concepts in
-                ways that make sense{" "}
-                <span className="italic">to you</span>.
+              <p className="text-lg text-[var(--color-text-secondary)] leading-relaxed max-w-lg">
+                Pick <strong className="text-[var(--color-text)]">2–3 interests</strong>. We&apos;ll use them to explain concepts in
+                ways that make sense <em className="text-[var(--color-text)]">to you</em>.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3 mb-10 animate-slideUp">
-              {INTEREST_TAGS.map((tag, i) => (
-                <button
-                  key={tag}
-                  onClick={() => toggleTag(tag)}
-                  className={`tag text-base capitalize px-5 py-2.5 transition-all duration-200 ${
-                    selectedTags.includes(tag) ? "active" : ""
-                  }`}
-                  style={{ animationDelay: `${i * 0.05}s` }}
-                >
-                  {tag === "gaming" && "🎮 "}
-                  {tag === "sports" && "⚽ "}
-                  {tag === "music" && "🎵 "}
-                  {tag === "cooking" && "🍳 "}
-                  {tag === "nature" && "🌿 "}
-                  {tag === "art" && "🎨 "}
-                  {tag === "cars" && "🚗 "}
-                  {tag === "movies" && "🎬 "}
-                  {tag === "dance" && "💃 "}
-                  {tag === "technology" && "💻 "}
-                  {tag}
-                </button>
-              ))}
+            <div
+              className="flex flex-wrap gap-3 mb-12"
+              style={{ animation: "slideUp 0.5s 0.1s forwards", opacity: 0 }}
+            >
+              {INTEREST_TAGS.map((tag, i) => {
+                const selected = selectedTags.includes(tag);
+                const icons: Record<string, string> = {
+                  gaming: "🎮", sports: "⚽", music: "🎵", cooking: "🍳",
+                  nature: "🌿", art: "🎨", cars: "🚗", movies: "🎬",
+                  dance: "💃", technology: "💻",
+                };
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    className={selected ? "tag active" : "tag"}
+                    style={{ animation: `fadeIn 0.3s ${0.15 + i * 0.04}s forwards`, opacity: 0 }}
+                  >
+                    {icons[tag]} {tag}
+                    {selected && <Check className="w-3.5 h-3.5" />}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-[var(--color-text-muted)]">
+            <div
+              className="flex items-center justify-between"
+              style={{ animation: "fadeIn 0.3s 0.4s forwards", opacity: 0 }}
+            >
+              <p className="text-sm text-[var(--color-text-muted)]">
                 {selectedTags.length}/3 selected
+                {selectedTags.length < 2 && (
+                  <span className="ml-2 text-[var(--color-text-dim)]">— need at least 2</span>
+                )}
               </p>
               <button
-                onClick={() => {
-                  if (selectedTags.length >= 2) setStep("name");
-                }}
+                onClick={() => selectedTags.length >= 2 && setStep("name")}
                 disabled={selectedTags.length < 2}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--color-primary)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--color-primary-hover)] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="btn btn-primary text-base"
               >
                 Continue
                 <ArrowRight className="w-4 h-4" />
@@ -143,18 +130,16 @@ export default function OnboardPage() {
         )}
 
         {step === "name" && (
-          <div className="animate-slideUp">
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 text-[var(--color-warning)]" />
-                <span className="text-sm text-[var(--color-text-muted)]">
-                  Almost there!
-                </span>
+          <div style={{ animation: "slideUp 0.4s forwards", opacity: 0 }}>
+            <div className="mb-10">
+              <div className="section-label">
+                <Sparkles className="w-3.5 h-3.5" />
+                Almost there!
               </div>
-              <h1 className="text-3xl font-bold mb-3">
+              <h1 className="text-3xl md:text-4xl font-bold mb-4">
                 What&apos;s your name?
               </h1>
-              <p className="text-[var(--color-text-secondary)]">
+              <p className="text-lg text-[var(--color-text-secondary)] leading-relaxed">
                 This helps your teacher track your progress.
               </p>
             </div>
@@ -164,25 +149,25 @@ export default function OnboardPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your name..."
-              className="w-full px-5 py-3.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl text-base text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-all duration-200 mb-6"
+              className="input text-lg mb-8"
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               autoFocus
             />
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setStep("tags")}
-                className="px-6 py-3 glass rounded-xl text-sm font-medium hover:bg-[var(--color-surface-hover)] transition-all duration-200"
+                className="btn btn-ghost"
               >
                 Back
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={!name.trim() || isSubmitting}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--color-primary)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--color-primary-hover)] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="btn btn-primary flex-1 justify-center text-base"
               >
                 {isSubmitting ? (
-                  <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
                     Start Learning

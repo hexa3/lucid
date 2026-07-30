@@ -2,13 +2,8 @@
 
 import { useState } from "react";
 import {
-  Lightbulb,
-  MessageCircleQuestion,
-  BookOpen,
-  ChevronDown,
-  ChevronUp,
-  Volume2,
-  RefreshCw,
+  Lightbulb, MessageCircleQuestion, BookOpen,
+  ChevronDown, ChevronUp, Volume2, VolumeX, Check,
 } from "lucide-react";
 import { LessonOutput } from "@/types";
 
@@ -31,123 +26,129 @@ export default function LessonDisplay({
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   function handleTextToSpeech() {
-    if ("speechSynthesis" in window) {
-      setIsSpeaking(true);
-      const utterance = new SpeechSynthesisUtterance(
-        `${lesson.analogy_text}. ${lesson.full_explanation}`
-      );
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      window.speechSynthesis.speak(utterance);
-    }
-  }
-
-  function stopSpeaking() {
-    if ("speechSynthesis" in window) {
+    if (!("speechSynthesis" in window)) return;
+    if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
+      return;
     }
+    setIsSpeaking(true);
+    const utterance = new SpeechSynthesisUtterance(
+      `${lesson.analogy_text}. ${lesson.full_explanation}`
+    );
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
   }
 
-  const readingLevelLabel =
-    readingLevel === "simple"
-      ? "Simple"
-      : readingLevel === "advanced"
-        ? "Advanced"
-        : "Standard";
+  const levels = [
+    { key: "simple" as const, label: "Simple" },
+    { key: "standard" as const, label: "Standard" },
+    { key: "advanced" as const, label: "Advanced" },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* ─── Personalized Analogy ──────────────────── */}
+      {/* Personalized Analogy */}
       <div
-        className="glass rounded-xl p-6 border-l-4 border-l-[var(--color-accent)] animate-slideUp"
-        style={{ animationDelay: "0.1s" }}
+        className="card p-6 md:p-7 border-l-[3px] border-l-[var(--color-accent)]"
+        style={{ animation: "slideUp 0.4s 0.05s forwards", opacity: 0 }}
       >
-        <div className="flex items-center gap-2 mb-4">
-          <Lightbulb className="w-5 h-5 text-[var(--color-accent)]" />
-          <span className="font-semibold">
-            Through {interestTag} 🎯
-          </span>
-          <span className="ml-auto text-xs text-[var(--color-text-muted)] px-2 py-0.5 rounded-full bg-[var(--color-surface)]">
-            {readingLevelLabel}
-          </span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-ghost)] flex items-center justify-center">
+              <Lightbulb className="w-5 h-5 text-[var(--color-accent)]" />
+            </div>
+            <div>
+              <span className="font-bold text-lg">Through {interestTag}</span>
+              <p className="text-sm text-[var(--color-text-muted)]">Personalized analogy</p>
+            </div>
+          </div>
+          <span className="badge badge-primary">{readingLevel}</span>
         </div>
-        <p className="text-base leading-relaxed">{lesson.analogy_text}</p>
+        <p className="text-base md:text-lg leading-relaxed text-[var(--color-text-secondary)]">
+          {lesson.analogy_text}
+        </p>
       </div>
 
-      {/* ─── Socratic Follow-up ────────────────────── */}
+      {/* Socratic Follow-up */}
       <div
-        className="glass rounded-xl p-6 border-l-4 border-l-[var(--color-warning)] animate-slideUp"
-        style={{ animationDelay: "0.2s" }}
+        className="card p-6 md:p-7 border-l-[3px] border-l-[var(--color-warning)]"
+        style={{ animation: "slideUp 0.4s 0.1s forwards", opacity: 0 }}
       >
-        <div className="flex items-center gap-2 mb-3">
-          <MessageCircleQuestion className="w-5 h-5 text-[var(--color-warning)]" />
-          <span className="font-semibold">Think About This</span>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-warning-ghost)] flex items-center justify-center">
+            <MessageCircleQuestion className="w-5 h-5 text-[var(--color-warning)]" />
+          </div>
+          <div>
+            <span className="font-bold text-lg">Think About This</span>
+            <p className="text-sm text-[var(--color-text-muted)]">Socratic follow-up</p>
+          </div>
         </div>
-        <p className="text-base leading-relaxed italic">
+        <p className="text-base md:text-lg leading-relaxed italic text-[var(--color-text-secondary)]">
           {lesson.socratic_question}
         </p>
       </div>
 
-      {/* ─── Full Explanation (collapsible) ────────── */}
+      {/* Full Explanation (collapsible) */}
       <div
-        className="glass rounded-xl animate-slideUp"
-        style={{ animationDelay: "0.3s" }}
+        className="card"
+        style={{ animation: "slideUp 0.4s 0.15s forwards", opacity: 0 }}
       >
         <button
           onClick={() => setShowFullExplanation(!showFullExplanation)}
-          className="w-full flex items-center justify-between p-5"
+          className="w-full flex items-center justify-between p-5 md:p-6 hover:bg-[var(--color-surface-hover)] transition-colors rounded-[inherit]"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <BookOpen className="w-5 h-5 text-[var(--color-primary)]" />
-            <span className="font-semibold">Full Explanation</span>
+            <span className="font-bold text-base">Full Explanation</span>
           </div>
           {showFullExplanation ? (
-            <ChevronUp className="w-4 h-4 text-[var(--color-text-muted)]" />
+            <ChevronUp className="w-5 h-5 text-[var(--color-text-muted)]" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)]" />
+            <ChevronDown className="w-5 h-5 text-[var(--color-text-muted)]" />
           )}
         </button>
         {showFullExplanation && (
-          <div className="px-5 pb-5">
-            <div className="prose text-sm text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-line">
+          <div className="px-5 md:px-6 pb-6">
+            <div className="divider mt-0" />
+            <div className="prose text-base leading-relaxed">
               {lesson.full_explanation}
             </div>
           </div>
         )}
       </div>
 
-      {/* ─── Action Bar ─────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 animate-fadeIn">
+      {/* Action Bar */}
+      <div
+        className="flex flex-wrap items-center gap-3"
+        style={{ animation: "fadeIn 0.4s 0.2s forwards", opacity: 0 }}
+      >
         {/* TTS */}
         <button
-          onClick={isSpeaking ? stopSpeaking : handleTextToSpeech}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-            isSpeaking
-              ? "bg-[var(--color-accent)] text-white"
-              : "glass hover:bg-[var(--color-surface-hover)]"
-          }`}
+          onClick={handleTextToSpeech}
+          className={`btn ${isSpeaking ? "bg-[var(--color-accent)] text-white shadow-lg" : "btn-ghost"}`}
         >
-          <Volume2 className="w-4 h-4" />
+          {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           {isSpeaking ? "Stop" : "Listen"}
         </button>
 
-        {/* Reading level toggle */}
+        {/* Reading Level */}
         {onRegenerate && (
-          <div className="flex items-center gap-2">
-            {(["simple", "standard", "advanced"] as const).map((level) => (
+          <div className="flex items-center gap-1.5 ml-2">
+            {levels.map((level) => (
               <button
-                key={level}
-                onClick={() => onRegenerate(level)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                  readingLevel === level
-                    ? "bg-[var(--color-primary)] text-white"
-                    : "glass hover:bg-[var(--color-surface-hover)]"
+                key={level.key}
+                onClick={() => onRegenerate(level.key)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  readingLevel === level.key
+                    ? "bg-[var(--color-primary)] text-white shadow-sm"
+                    : "btn btn-ghost"
                 }`}
               >
-                {level === "simple" ? "Simple" : level === "advanced" ? "Advanced" : "Standard"}
+                {level.label}
               </button>
             ))}
           </div>
@@ -157,9 +158,9 @@ export default function LessonDisplay({
         {onComplete && (
           <button
             onClick={onComplete}
-            className="ml-auto inline-flex items-center gap-2 px-5 py-2 bg-[var(--color-success)] text-black rounded-lg text-sm font-semibold hover:opacity-90 transition-all duration-200"
+            className="btn btn-success ml-auto"
           >
-            <RefreshCw className="w-4 h-4" />
+            <Check className="w-4 h-4" />
             Mark Complete
           </button>
         )}

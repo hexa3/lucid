@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ConceptNode {
   id: string;
   label: string;
-  mastery: number; // 0-1
+  mastery: number;
   topicId: string;
 }
 
@@ -16,32 +16,21 @@ interface ConceptMapProps {
   height?: number;
 }
 
-/**
- * Animated SVG concept map with force-directed layout.
- *
- * Nodes are colored by mastery (red → yellow → green) and
- * animate smoothly when their mastery score changes.
- *
- * This is the single best visual moment in Lucid.
- */
 export default function ConceptMap({
   nodes,
   onNodeClick,
   width = 600,
-  height = 400,
+  height = 420,
 }: ConceptMapProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
   const [positions, setPositions] = useState<
     Array<{ x: number; y: number; vx: number; vy: number }>
   >([]);
-  const animFrameRef = useRef<number | null>(null);
 
   // Initialize positions in a circle
   useEffect(() => {
     const centerX = width / 2;
     const centerY = height / 2;
     const radius = Math.min(width, height) * 0.35;
-
     setPositions(
       nodes.map((_, i) => {
         const angle = (2 * Math.PI * i) / nodes.length - Math.PI / 2;
@@ -58,75 +47,54 @@ export default function ConceptMap({
   // Simple force-directed layout
   useEffect(() => {
     if (positions.length === 0) return;
-
     const centerX = width / 2;
     const centerY = height / 2;
-    const repulsion = 8000;
-    const attraction = 0.005;
+    const repulsion = 10000;
+    const attraction = 0.006;
     const damping = 0.85;
-    const iterations = 60;
+    const iterations = 50;
 
-    let currentPositions = positions.map((p) => ({ ...p }));
+    let current = positions.map((p) => ({ ...p }));
 
     for (let iter = 0; iter < iterations; iter++) {
-      // Repulsion between all pairs
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
-          const dx = currentPositions[j].x - currentPositions[i].x;
-          const dy = currentPositions[j].y - currentPositions[i].y;
+          const dx = current[j].x - current[i].x;
+          const dy = current[j].y - current[i].y;
           const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
           const force = repulsion / (dist * dist);
           const fx = (dx / dist) * force;
           const fy = (dy / dist) * force;
-          currentPositions[i].vx -= fx;
-          currentPositions[i].vy -= fy;
-          currentPositions[j].vx += fx;
-          currentPositions[j].vy += fy;
+          current[i].vx -= fx;
+          current[i].vy -= fy;
+          current[j].vx += fx;
+          current[j].vy += fy;
         }
       }
-
-      // Attraction to center
       for (let i = 0; i < nodes.length; i++) {
-        const dx = centerX - currentPositions[i].x;
-        const dy = centerY - currentPositions[i].y;
-        currentPositions[i].vx += dx * attraction;
-        currentPositions[i].vy += dy * attraction;
+        const dx = centerX - current[i].x;
+        const dy = centerY - current[i].y;
+        current[i].vx += dx * attraction;
+        current[i].vy += dy * attraction;
       }
-
-      // Apply velocities
       for (let i = 0; i < nodes.length; i++) {
-        currentPositions[i].vx *= damping;
-        currentPositions[i].vy *= damping;
-        currentPositions[i].x += currentPositions[i].vx;
-        currentPositions[i].y += currentPositions[i].vy;
-
-        // Keep within bounds
-        const margin = 60;
-        currentPositions[i].x = Math.max(
-          margin,
-          Math.min(width - margin, currentPositions[i].x)
-        );
-        currentPositions[i].y = Math.max(
-          margin,
-          Math.min(height - margin, currentPositions[i].y)
-        );
+        current[i].vx *= damping;
+        current[i].vy *= damping;
+        current[i].x += current[i].vx;
+        current[i].y += current[i].vy;
+        const margin = 70;
+        current[i].x = Math.max(margin, Math.min(width - margin, current[i].x));
+        current[i].y = Math.max(margin, Math.min(height - margin, current[i].y));
       }
     }
-
-    setPositions(currentPositions.map((p) => ({ x: p.x, y: p.y, vx: 0, vy: 0 })));
+    setPositions(current.map((p) => ({ x: p.x, y: p.y, vx: 0, vy: 0 })));
   }, [nodes, width, height]);
 
-  // Compute edge connections (fully connected graph, but faded)
   const edges = (() => {
     const result: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
     for (let i = 0; i < positions.length; i++) {
       for (let j = i + 1; j < positions.length; j++) {
-        result.push({
-          x1: positions[i].x,
-          y1: positions[i].y,
-          x2: positions[j].x,
-          y2: positions[j].y,
-        });
+        result.push({ x1: positions[i].x, y1: positions[i].y, x2: positions[j].x, y2: positions[j].y });
       }
     }
     return result;
@@ -134,43 +102,39 @@ export default function ConceptMap({
 
   function getNodeColor(mastery: number): string {
     if (mastery < 0.4) return "#ff6b6b";
-    if (mastery < 0.7) return "#fdcb6e";
-    return "#00cec9";
+    if (mastery < 0.7) return "#f5c842";
+    return "#00d4c0";
   }
 
   function getNodeGlow(mastery: number): string {
-    if (mastery < 0.4) return "rgba(255, 107, 107, 0.3)";
-    if (mastery < 0.7) return "rgba(253, 203, 110, 0.3)";
-    return "rgba(0, 206, 201, 0.3)";
+    if (mastery < 0.4) return "rgba(255, 107, 107, 0.25)";
+    if (mastery < 0.7) return "rgba(245, 200, 66, 0.25)";
+    return "rgba(0, 212, 192, 0.25)";
   }
 
   return (
     <div className="relative w-full flex justify-center">
       <svg
-        ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full max-w-[600px] h-auto"
+        className="w-full max-w-[650px] h-auto"
         style={{ overflow: "visible" }}
       >
-        {/* Background gradient */}
         <defs>
-          <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(108, 92, 231, 0.05)" />
+          <radialGradient id="cmBgGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(124, 108, 240, 0.06)" />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
         </defs>
-        <rect width={width} height={height} fill="url(#bgGlow)" rx={16} />
+        <rect width={width} height={height} fill="url(#cmBgGlow)" rx={16} />
 
         {/* Edges */}
         {edges.map((edge, i) => (
           <line
             key={i}
-            x1={edge.x1}
-            y1={edge.y1}
-            x2={edge.x2}
-            y2={edge.y2}
-            stroke="rgba(42, 42, 62, 0.4)"
-            strokeWidth={1}
+            x1={edge.x1} y1={edge.y1}
+            x2={edge.x2} y2={edge.y2}
+            stroke="rgba(42, 42, 64, 0.35)"
+            strokeWidth={1.5}
             className="transition-all duration-500"
           />
         ))}
@@ -181,32 +145,30 @@ export default function ConceptMap({
           if (!pos) return null;
           const color = getNodeColor(node.mastery);
           const glow = getNodeGlow(node.mastery);
-          const radius = 28 + node.mastery * 8;
+          const radius = 32 + node.mastery * 10;
 
           return (
             <g
               key={node.id}
-              className="cursor-pointer transition-all duration-700"
+              className="cursor-pointer"
               onClick={() => onNodeClick?.(node.id)}
-              style={{ transition: "transform 0.7s ease" }}
             >
-              {/* Glow */}
+              {/* Outer glow ring */}
               <circle
-                cx={pos.x}
-                cy={pos.y}
-                r={radius + 12}
+                cx={pos.x} cy={pos.y}
+                r={radius + 14}
                 fill={glow}
                 className="transition-all duration-700"
               >
                 <animate
                   attributeName="r"
-                  values={`${radius + 8};${radius + 16};${radius + 8}`}
+                  values={`${radius + 10};${radius + 18};${radius + 10}`}
                   dur="3s"
                   repeatCount="indefinite"
                 />
                 <animate
                   attributeName="opacity"
-                  values="0.5;0.8;0.5"
+                  values="0.4;0.7;0.4"
                   dur="3s"
                   repeatCount="indefinite"
                 />
@@ -214,63 +176,69 @@ export default function ConceptMap({
 
               {/* Node circle */}
               <circle
-                cx={pos.x}
-                cy={pos.y}
+                cx={pos.x} cy={pos.y}
                 r={radius}
-                fill="var(--color-surface)"
+                fill="#14141f"
                 stroke={color}
                 strokeWidth={3}
                 className="transition-all duration-700"
               >
                 <animate
                   attributeName="r"
-                  values={`${radius};${radius + 3};${radius}`}
+                  values={`${radius};${radius + 2};${radius}`}
                   dur="3s"
                   repeatCount="indefinite"
                 />
               </circle>
 
-              {/* Inner dot */}
+              {/* Inner status dot */}
               <circle
-                cx={pos.x}
-                cy={pos.y}
-                r={6}
+                cx={pos.x} cy={pos.y}
+                r={7}
                 fill={color}
                 className="transition-all duration-700"
               />
 
-              {/* Label */}
+              {/* Mastery percentage - larger, centered */}
               <text
                 x={pos.x}
-                y={pos.y + radius + 20}
-                textAnchor="middle"
-                fill="var(--color-text-secondary)"
-                fontSize={11}
-                fontFamily="var(--font-sans)"
-                className="transition-all duration-700"
-              >
-                {node.label.length > 20
-                  ? node.label.substring(0, 18) + "..."
-                  : node.label}
-              </text>
-
-              {/* Mastery percentage */}
-              <text
-                x={pos.x}
-                y={pos.y + 4}
+                y={pos.y - 9}
                 textAnchor="middle"
                 fill={color}
-                fontSize={12}
-                fontWeight={600}
+                fontSize={15}
+                fontWeight={700}
                 fontFamily="var(--font-mono)"
                 className="transition-all duration-700"
               >
                 {Math.round(node.mastery * 100)}%
               </text>
+
+              {/* Label - larger text below node */}
+              <text
+                x={pos.x}
+                y={pos.y + radius + 24}
+                textAnchor="middle"
+                fill="var(--color-text-secondary)"
+                fontSize={13}
+                fontWeight={500}
+                fontFamily="var(--font-sans)"
+                className="transition-all duration-700"
+              >
+                {node.label.length > 22
+                  ? node.label.substring(0, 20) + "..."
+                  : node.label}
+              </text>
             </g>
           );
         })}
       </svg>
+
+      {/* Empty state */}
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-sm text-[var(--color-text-muted)]">No concepts to display</p>
+        </div>
+      )}
     </div>
   );
 }

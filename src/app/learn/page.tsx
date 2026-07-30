@@ -3,27 +3,23 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Brain,
-  ArrowLeft,
-  Send,
-  Loader2,
-  BookOpen,
-  ChevronRight,
-  Mic,
-  MicOff,
-  Sparkles,
+  Brain, ArrowLeft, Loader2, BookOpen, ChevronRight,
+  Mic, MicOff, Sparkles, ChevronLeft,
 } from "lucide-react";
 
 interface TopicData {
   topic_id: string;
   display_name: string;
   subconcept_count: number;
-  subconcepts: Array<{
-    id: string;
-    label: string;
-    misconception_count: number;
-  }>;
+  subconcepts: Array<{ id: string; label: string; misconception_count: number }>;
 }
+
+const domainIcons: Record<string, string> = {
+  newtons_second_law: "⚡",
+  photosynthesis: "🌱",
+  recursion: "🔄",
+  cognitive_biases: "🧠",
+};
 
 export default function LearnPage() {
   const router = useRouter();
@@ -36,29 +32,23 @@ export default function LearnPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadTopics() {
+    (async () => {
       try {
         const res = await fetch("/api/topics");
         if (!res.ok) throw new Error("Failed to load topics");
-        const json = await res.json();
-        setTopics(json.data.topics);
-      } catch (err) {
+        setTopics((await res.json()).data.topics);
+      } catch {
         setError("Failed to load topics. Please try again.");
-        console.error(err);
       } finally {
         setIsLoading(false);
       }
-    }
-    loadTopics();
+    })();
   }, []);
 
   async function handleSubmit() {
     if (!explanation.trim() || !selectedTopic) return;
+    const userId = sessionStorage.getItem("lucid_user_id") || "demo_user_001";
 
-    const userId =
-      sessionStorage.getItem("lucid_user_id") || "demo_user_001";
-
-    // Save these for the lesson page
     sessionStorage.setItem("lucid_current_topic_id", selectedTopic.topic_id);
     sessionStorage.setItem("lucid_current_topic_name", selectedTopic.display_name);
     sessionStorage.setItem("lucid_current_explanation", explanation.trim());
@@ -83,26 +73,13 @@ export default function LearnPage() {
       }
 
       const json = await res.json();
-      sessionStorage.setItem(
-        "lucid_diagnosis_result",
-        JSON.stringify(json.data)
-      );
-
-      // Save mastery for the concept map
+      sessionStorage.setItem("lucid_diagnosis_result", JSON.stringify(json.data));
       if (json.data.updated_mastery) {
-        sessionStorage.setItem(
-          "lucid_mastery",
-          JSON.stringify(json.data.updated_mastery)
-        );
+        sessionStorage.setItem("lucid_mastery", JSON.stringify(json.data.updated_mastery));
       }
-
       router.push("/lesson");
     } catch (err: any) {
-      setError(
-        err.message ||
-          "Something went wrong. Please try again with a longer explanation."
-      );
-      console.error(err);
+      setError(err.message || "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -113,56 +90,36 @@ export default function LearnPage() {
       alert("Voice input is not supported in your browser. Please type instead.");
       return;
     }
+    if (isListening) { setIsListening(false); return; }
 
-    if (isListening) {
-      setIsListening(false);
-      return;
-    }
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { alert("Voice input not supported."); return; }
 
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      alert("Voice input is not supported in your browser.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
+    const recognition = new SR();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = "en-US";
-
     setIsListening(true);
 
     recognition.onresult = (event: any) => {
-      let finalTranscript = "";
+      let final = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        }
+        if (event.results[i].isFinal) final += event.results[i][0].transcript;
       }
-      if (finalTranscript) {
-        setExplanation((prev) => (prev ? `${prev} ${finalTranscript}` : finalTranscript));
-      }
+      if (final) setExplanation((prev) => (prev ? `${prev} ${final}` : final));
     };
-
-    recognition.onerror = () => {
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
     recognition.start();
   }
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-[var(--color-primary)] mx-auto mb-4" />
+          <p className="text-[var(--color-text-muted)] text-lg">Loading topics...</p>
+        </div>
       </div>
     );
   }
@@ -171,59 +128,54 @@ export default function LearnPage() {
     <div className="min-h-screen px-6 py-8">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-10">
-          <button
-            onClick={() => router.push("/")}
-            className="p-2 glass rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors"
-          >
+        <div className="flex items-center gap-4 mb-12">
+          <button onClick={() => router.push("/")} className="btn btn-ghost px-3 py-2.5">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <Brain className="w-6 h-6 text-[var(--color-primary)]" />
-            <span className="font-bold gradient-text text-lg">Lucid</span>
+            <span className="font-bold text-xl gradient-text">Lucid</span>
           </div>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 glass rounded-xl border-l-4 border-l-[var(--color-danger)] animate-slideUp">
-            <p className="text-sm text-[var(--color-danger)]">{error}</p>
+          <div className="mb-6 p-4 glass-elevated rounded-xl border-l-[3px] border-l-[var(--color-danger)]" style={{ animation: "slideUp 0.3s forwards" }}>
+            <p className="text-[var(--color-danger)]">{error}</p>
           </div>
         )}
 
         {!selectedTopic ? (
           <>
             {/* Topic Selection */}
-            <div className="mb-8 animate-fadeIn">
-              <span className="text-xs text-[var(--color-primary)] font-mono uppercase tracking-wider">
-                Step 1 of 2
-              </span>
-              <h1 className="text-3xl font-bold mt-2 mb-3">
+            <div className="mb-10" style={{ animation: "fadeIn 0.5s forwards", opacity: 0 }}>
+              <div className="section-label">Step 1 of 2</div>
+              <h1 className="text-3xl md:text-4xl font-bold mt-1 mb-4">
                 What do you want to learn?
               </h1>
-              <p className="text-[var(--color-text-secondary)]">
+              <p className="text-lg text-[var(--color-text-secondary)] leading-relaxed">
                 Pick a topic to explain in your own words.
               </p>
             </div>
 
-            <div className="grid gap-4 animate-slideUp">
+            <div className="grid gap-4" style={{ animation: "slideUp 0.5s 0.1s forwards", opacity: 0 }}>
               {topics.map((topic, i) => (
                 <button
                   key={topic.topic_id}
                   onClick={() => setSelectedTopic(topic)}
-                  className="glass rounded-xl p-5 text-left hover:border-[var(--color-primary)] transition-all duration-200 group"
-                  style={{ animationDelay: `${i * 0.1}s` }}
+                  className="card card-interactive p-5 md:p-6 text-left"
+                  style={{ animation: `fadeIn 0.4s ${0.15 + i * 0.08}s forwards`, opacity: 0 }}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <BookOpen className="w-5 h-5 text-[var(--color-primary)] group-hover:scale-110 transition-transform" />
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl md:text-3xl">{domainIcons[topic.topic_id] || "📘"}</span>
                       <div>
-                        <h3 className="font-semibold">{topic.display_name}</h3>
-                        <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                        <h3 className="text-lg md:text-xl font-bold">{topic.display_name}</h3>
+                        <p className="text-sm text-[var(--color-text-muted)] mt-1">
                           {topic.subconcept_count} sub-concepts to master
                         </p>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)] transition-colors" />
+                    <ChevronRight className="w-5 h-5 text-[var(--color-text-dim)] group-hover:text-[var(--color-primary)] transition-colors shrink-0" />
                   </div>
                 </button>
               ))}
@@ -232,67 +184,55 @@ export default function LearnPage() {
         ) : (
           <>
             {/* Explain In Your Own Words */}
-            <div className="mb-8 animate-fadeIn">
+            <div className="mb-8" style={{ animation: "fadeIn 0.5s forwards", opacity: 0 }}>
               <button
                 onClick={() => setSelectedTopic(null)}
-                className="text-xs text-[var(--color-primary)] hover:underline mb-4 inline-block"
+                className="inline-flex items-center gap-1.5 text-sm text-[var(--color-primary)] hover:underline mb-5"
               >
-                ← Change topic
+                <ChevronLeft className="w-4 h-4" />
+                Change topic
               </button>
-              <span className="text-xs text-[var(--color-primary)] font-mono uppercase tracking-wider">
-                Step 2 of 2
-              </span>
-              <h1 className="text-3xl font-bold mt-2 mb-2">
+              <div className="section-label">Step 2 of 2</div>
+              <h1 className="text-3xl md:text-4xl font-bold mt-1 mb-4">
                 Explain it in your own words
               </h1>
-              <p className="text-[var(--color-text-secondary)]">
-                Topic:{" "}
-                <span className="text-[var(--color-text)] font-medium">
-                  {selectedTopic.display_name}
-                </span>
+              <p className="text-lg text-[var(--color-text-secondary)]">
+                Topic: <span className="text-[var(--color-text)] font-semibold">{selectedTopic.display_name}</span>
               </p>
             </div>
 
-            <div className="glass rounded-xl p-6 animate-slideUp">
+            <div className="card p-6 md:p-8" style={{ animation: "slideUp 0.5s 0.1s forwards", opacity: 0 }}>
               <textarea
                 value={explanation}
                 onChange={(e) => setExplanation(e.target.value)}
                 placeholder={`Explain ${selectedTopic.display_name} like you're teaching it to someone who knows nothing about it. Use examples, be specific — don't worry about being perfect.`}
-                className="w-full min-h-[200px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-5 text-base text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] resize-y focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-all duration-200"
+                className="textarea w-full min-h-[220px] mb-5"
               />
 
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={handleVoiceInput}
-                    className={`p-2.5 rounded-lg transition-all duration-200 ${
+                    className={`p-3 rounded-xl transition-all ${
                       isListening
-                        ? "bg-[var(--color-danger)] text-white animate-pulse"
-                        : "glass hover:bg-[var(--color-surface-hover)] text-[var(--color-text-muted)]"
+                        ? "bg-[var(--color-danger)] text-white animate-pulse shadow-lg"
+                        : "btn btn-ghost px-4 py-3"
                     }`}
-                    title={
-                      isListening ? "Stop recording" : "Speak your explanation"
-                    }
+                    title={isListening ? "Stop recording" : "Speak your explanation"}
                   >
-                    {isListening ? (
-                      <MicOff className="w-5 h-5" />
-                    ) : (
-                      <Mic className="w-5 h-5" />
-                    )}
+                    {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                   </button>
-                  <span className="text-xs text-[var(--color-text-muted)]">
+                  <span className="text-sm text-[var(--color-text-muted)]">
                     {explanation.length > 0
                       ? `${explanation.length} characters`
-                      : "Type or speak your explanation"}
+                      : "Type or speak"}
                   </span>
                 </div>
 
                 <button
                   onClick={handleSubmit}
-                  disabled={
-                    explanation.trim().length < 10 || isSubmitting
-                  }
-                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[var(--color-primary)] text-white rounded-lg text-sm font-semibold hover:bg-[var(--color-primary-hover)] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={explanation.trim().length < 10 || isSubmitting}
+                  className="btn btn-primary text-base w-full sm:w-auto justify-center"
                 >
                   {isSubmitting ? (
                     <>
