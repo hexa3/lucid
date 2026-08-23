@@ -25,6 +25,7 @@ Lucid uses the **Feynman Technique**: have the student explain a concept in thei
 
 ## Solution Overview
 
+<!-- TODO: replace this placeholder with a real screenshot/GIF of the concept-map animation (run the app, capture the diagnosis view) -->
 ![Concept Map](https://placehold.co/800x400/1a1a24/6c5ce7?text=🎯+Concept+Map+Animation&font=inter)
 
 Lucid's web app lets a student:
