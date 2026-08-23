@@ -26,7 +26,6 @@ Lucid uses the **Feynman Technique**: have the student explain a concept in thei
 ## Solution Overview
 
 <!-- TODO: replace this placeholder with a real screenshot/GIF of the concept-map animation (run the app, capture the diagnosis view) -->
-![Concept Map](https://placehold.co/800x400/1a1a24/6c5ce7?text=🎯+Concept+Map+Animation&font=inter)
 
 Lucid's web app lets a student:
 1. **Pick 2–3 interests** (sports, gaming, cooking, etc.) to personalize analogies
@@ -126,7 +125,7 @@ topCandidates = misconceptions[topic]
 | **Frontend** | Next.js 16 + Tailwind CSS 4 | App Router, server/client components, fast styling |
 | **Backend** | Next.js API Routes | Same repo, no extra deployment |
 | **Embeddings** | Transformers.js (all-MiniLM-L6-v2) | Local ONNX inference — no API needed, <80MB model |
-| **LLM** | Pluggable (Mock / OpenAI / Anthropic / Gemini) | Structured output via JSON mode |
+| **LLM** | Mock provider behind a pluggable interface | Real LLM providers on the roadmap |
 | **Storage** | In-memory (Map-based store) | Hackathon shortcut — swap for Supabase/PostgreSQL |
 | **Icons** | Lucide React | Consistent icon system |
 | **Fonts** | Inter + JetBrains Mono | Clean, modern typography |
@@ -158,7 +157,7 @@ Each misconception includes a **Socratic probe** — a follow-up question that d
 
 ```bash
 # Clone the repo
-git clone https://github.com/ibnshafi/lucid.git
+git clone https://github.com/hexa3/lucid.git
 cd lucid
 
 # Install dependencies
@@ -177,12 +176,10 @@ Open [http://localhost:3000](http://localhost:3000) and click **Start Learning**
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LLM_PROVIDER` | `mock` | `mock`, `openai`, `anthropic`, or `gemini` |
-| `OPENAI_API_KEY` | — | Required if `LLM_PROVIDER=openai` |
-| `ANTHROPIC_API_KEY` | — | Required if `LLM_PROVIDER=anthropic` |
+| `LLM_PROVIDER` | `mock` | Currently only `mock` is implemented — any other value falls back to mock with a warning |
 | `EMBEDDING_MODEL` | `Xenova/all-MiniLM-L6-v2` | Transformers.js model name |
 
-> **Note:** The app works fully in **mock mode** without any API keys. The mock LLM provider returns sensible canned responses so you can demo the entire flow. To use real LLM-powered diagnosis, set `LLM_PROVIDER` and the corresponding API key.
+> **Note:** The app works fully in **mock mode** without any API keys. The mock LLM provider returns sensible canned responses so you can demo the entire flow. Live LLM providers (OpenAI / Anthropic / Gemini) are on the [roadmap](#roadmap) — the provider interface is pluggable but not yet wired.
 
 ---
 
