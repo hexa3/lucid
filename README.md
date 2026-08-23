@@ -297,5 +297,3 @@ lucid/
 MIT — free for educational and hackathon use.
 
 ---
-
-*Built with ❤️ for the Prometheus Hackathon, July 2026.*
