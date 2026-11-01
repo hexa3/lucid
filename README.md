@@ -297,3 +297,5 @@ lucid/
 MIT — free for educational and hackathon use.
 
 ---
+
+<p align="center">Built by <a href="https://sheheryar.xyz">Sheheryar</a> · <a href="https://github.com/hexa3">github.com/hexa3</a></p>
